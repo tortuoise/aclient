@@ -1,6 +1,7 @@
 package aclient
 
 import (
+        _"reflect"
         "testing"
         _"time"
 
@@ -9,9 +10,10 @@ import (
 var (
 
 	nsef = "https://nseindia.com/live_market/dynaContent/live_watch/get_quote/ajaxFOGetQuoteJSON.jsp?underlying=NIFTY&instrument=FUTIDX&type=-&strike=-&expiry="
+        getter *HttpMultiGetter
 )
 
-func TestHttpGet(t *testing.T) {
+/*func TestHttpGet(t *testing.T) {
 
         nseLive1 := []byte(nsef)
         var xprs [][]byte
@@ -58,6 +60,7 @@ func TestHttpGoGet(t *testing.T) {
         errChan := make(chan error,1)
         getter.MultiGet(doneChan, errChan)
         <-doneChan
+        //t.Errorf("%v", <-errChan)
         err = getter.Unmarshal(&OptionData{})
         if err != nil {
                 t.Errorf("Error: %v ", err)
@@ -66,9 +69,9 @@ func TestHttpGoGet(t *testing.T) {
                 t.Errorf("Bytes: %v", getter.Display())
         }
 
-}
+}*/
 
-/*func TestHttpMultiGet(t *testing.T) {
+func TestHttpMultiGet(t *testing.T) {
 
         nseLive1 := []byte(nsef)
         var xprs [][]byte
@@ -92,12 +95,17 @@ func TestHttpGoGet(t *testing.T) {
         errChan := make(chan error,1)
         getter.MultiGet(doneChan, errChan)
         <-doneChan
-        //err = getter.MultiUnmarshal(&OptionData{})
-        //if err != nil {
-        //        t.Errorf("Error: %v ", err)
-        //}
-        if getter.Ubs != nil {
-                t.Errorf("Bytes: %v", getter.Display())
+        err = getter.MultiUnmarshal(&OptionData{})
+        if err != nil {
+                t.Errorf("Error: %v ", err)
         }
+        if getter.Ubs != nil {
+                t.Errorf("%v", getter.Display())
+        }
+}
+
+/*
+func TestPersistence(t *testing.T) {
+        t.Errorf("Still there")
 
 }*/

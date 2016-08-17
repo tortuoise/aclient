@@ -11,6 +11,7 @@ import (
         "net/http"
         _"os"
         stdurl "net/url"
+        _"reflect"
         "strings"
         "strconv"
         "sync"
@@ -25,6 +26,7 @@ var (
         contentTypeHeader= "Content-Type"
         acceptRangesHeader = "Accept-Ranges"
         status = "Status"
+        mu = &sync.Mutex{}
 )
 
 type HttpGetter struct {
@@ -37,6 +39,7 @@ type HttpGetter struct {
         Od *OptionData
 }
 type HttpMultiGetter struct {
+        sync.RWMutex
         RespReader []io.ReadCloser
         Resp []*http.Response
         Req []*http.Request
@@ -63,6 +66,7 @@ func NewHttpMultiGetter(urls []string) (*HttpMultiGetter,error) {
         hmg.Resp = make([]*http.Response, len(urls))
         hmg.Ubs = make([][]byte, len(urls))
         hmg.RespReader = make([]io.ReadCloser, len(urls))
+        hmg.Ods = make([]*OptionData, len(urls))
         for i, url := range urls {
                 r, err := http.NewRequest("GET", url, nil)
                 if err != nil {
@@ -88,8 +92,10 @@ func (this *HttpGetter) Display() string{
 
 func (this *HttpMultiGetter) Display() string{
         var out string
-        for _, t := range this.Ods {
-                        out += fmt.Sprintf(" %v %v %v %v %v %v %v \n", t.Book[0].ExpiryDate, t.Book[0].BuyQuantity1, t.Book[0].BuyPrice1, t.Book[0].SellPrice1, t.Book[0].SellQuantity1, t.Book[0].LowPrice, t.Book[0].HighPrice)
+        for i, t := range this.Ods {
+                //o := strconv.Itoa(i)
+                //out += o
+                out += fmt.Sprintf("%v %v %v %v %v %v %v %v \n", i, t.Book[0].ExpiryDate, t.Book[0].BuyQuantity1, t.Book[0].BuyPrice1, t.Book[0].SellPrice1, t.Book[0].SellQuantity1, t.Book[0].LowPrice, t.Book[0].HighPrice)
         }
         return out
 }
@@ -107,13 +113,21 @@ func (this *HttpGetter) Unmarshal(v interface{}) error{
 
 func (this *HttpMultiGetter) MultiUnmarshal(v interface{}) error{
         for i, ubs := range this.Ubs {
-                err := json.Unmarshal(ubs, v)
-                if err != nil {
-                        return err //errors.New("Json unmarshalling error")
-                }
+                //err := json.Unmarshal(ubs, v)
+                //if err != nil {
+                //        return err //errors.New("Json unmarshalling error")
+               // }
                 switch v.(type) {
                         case *OptionData:
-                                this.Ods[i] = v.(*OptionData)
+                                if i > len(this.Ods) - 1 {
+                                        return errors.New(fmt.Sprintf("Unmarshal error: %v", i))
+                                }
+                                this.Ods[i] = &OptionData{}
+                                err := json.Unmarshal(ubs,this.Ods[i])
+                                if err != nil {
+                                        return err //errors.New("Json unmarshalling error")
+                                }
+                                //*this.Ods[i] = *v.(*OptionData)
                         default:
                 }
         }
@@ -213,16 +227,19 @@ func (this *HttpMultiGetter) MultiGet(doneChan chan bool, errorChan chan error) 
         var ws sync.WaitGroup
         for i,req := range this.Req {
                 ws.Add(1)
-                go func (d *HttpMultiGetter) {
+                go func (d *HttpMultiGetter, i int, rqst *http.Request) {
                         defer ws.Done()
-                        this.SetMultiHeaders(i)
-                        x, err := this.Clnt.Do(req)
-                        this.Resp[i] = x
-                        defer this.Resp[i].Body.Close()
+                        if i > len(d.Req) {
+                                ws.Done()
+                        }
+                        d.SetMultiHeaders(i)
+                        x, err := d.Clnt.Do(rqst) //can't use req?
+                        d.Resp[i] = x
+                        defer d.Resp[i].Body.Close()
                         if err != nil {
                                 errorChan<- err
                         }
-                        cl := this.Resp[i].Header.Get(contentLengthHeader)
+                        cl := d.Resp[i].Header.Get(contentLengthHeader)
                         if cl == "" {
                                 errorChan<- errors.New("Response doesn't have content length")
                         }
@@ -230,32 +247,32 @@ func (this *HttpMultiGetter) MultiGet(doneChan chan bool, errorChan chan error) 
                         if err != nil {
                                 errorChan<- err
                         }
-                        this.Ubs[i] = make([]byte, icl*3)
-                        ct := this.Resp[i].Header.Get(contentTypeHeader)
+                        d.Ubs[i] = make([]byte, icl*3)
+                        ct := d.Resp[i].Header.Get(contentTypeHeader)
                         if ct == "" {
                                 errorChan<- errors.New("Response doesn't have content type")
                         }
                         switch ct {
                                 case "gzip":
-                                        this.RespReader[i], err = gzip.NewReader(this.Resp[i].Body)
-                                        defer this.RespReader[i].Close()
+                                        d.RespReader[i], err = gzip.NewReader(d.Resp[i].Body)
+                                        defer d.RespReader[i].Close()
                                         if err != nil {
                                                 errorChan<- err
                                         }
                                 default:
-                                        this.RespReader[i], err = gzip.NewReader(this.Resp[i].Body)
-                                        defer this.RespReader[i].Close()
+                                        d.RespReader[i], err = gzip.NewReader(d.Resp[i].Body)
+                                        defer d.RespReader[i].Close()
                                         if err != nil {
                                                 errorChan<- err
                                         }
                         }
-                        n, err := this.RespReader[i].Read(this.Ubs[i])
+                        n, err := d.RespReader[i].Read(d.Ubs[i])
                         if err != nil {
                                 errorChan<- err
                         }
-                        this.Ubs[i] = this.Ubs[i][:n]
+                        d.Ubs[i] = d.Ubs[i][:n]
                         //doneChan<- true
-                }(this)
+                }(this, i, req)
         }
         ws.Wait()
         doneChan<- true
@@ -274,6 +291,8 @@ func (this *HttpGetter) SetHeaders() {
 	this.Req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*,q=0.8")
 }
 func (this *HttpMultiGetter) SetMultiHeaders(i int) {
+        this.Lock()
+        defer this.Unlock()
 	//req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 6.1; rv:39.0) Gecko/20100101 Firefox/39.0")
 	this.Req[i].Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0 Iceweasel/31.8.0i")
 	this.Req[i].Header.Set("Host", "nseindia.com")
