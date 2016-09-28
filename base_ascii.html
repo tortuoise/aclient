@@ -1,0 +1,81 @@
+{{define "base_ascii"}}
+	<!DOCTYPE html>
+	<html>
+		<head>
+			<meta charset="UTF-8">
+			<title>Devanagari</title>
+		</head>
+		<body style="font-size:16px">
+                        <table><tr>
+                        <td>
+                       <table> 
+                                <th> Decimal </th> <th> Hex </th> <th> Unicode </th> <th> Character </th>
+                                <tbody>
+                                        {{range $i,$a := .}}
+                                                {{if lt $i 32}}
+                                                        <tr>
+                                                        <td>{{$a.Dec}} </td>
+                                                        <td>{{$a.Hex}} </td> 
+                                                        <td>{{$a.Uni}} </td> 
+                                                        <td>{{$a.Char}} </td>
+                                                        </tr>
+                                                {{end}}
+                                        {{end}}
+                                </tbody>
+                        </table>
+                        </td>
+                        <td>
+                       <table> 
+                                <th> Decimal </th> <th> Hex </th> <th> Unicode </th> <th> Character </th>
+                                <tbody>
+                                        {{range $i,$a := .}}
+                                                {{if (and (ge $i 32) (lt $i 64)) }}
+                                                        <tr>
+                                                        <td>{{$a.Dec}} </td>
+                                                        <td>{{$a.Hex}} </td> 
+                                                        <td>{{$a.Uni}} </td> 
+                                                        <td>{{$a.Char}} </td>
+                                                        </tr>
+                                                {{end}}
+                                        {{end}}
+                                </tbody>
+                        </table>
+                        </td>
+                        <td>
+                       <table> 
+                                <th> Decimal </th> <th> Hex </th> <th> Unicode </th> <th> Character </th>
+                                <tbody>
+                                        {{range $i,$a := .}}
+                                                {{if (and (ge $i 64) (lt $i 96)) }}
+                                                        <tr>
+                                                        <td>{{$a.Dec}} </td>
+                                                        <td>{{$a.Hex}} </td> 
+                                                        <td>{{$a.Uni}} </td> 
+                                                        <td>{{$a.Char}} </td>
+                                                        </tr>
+                                                {{end}}
+                                        {{end}}
+                                </tbody>
+                        </table>
+                        </td>
+                        <td>
+                       <table> 
+                                <th> Decimal </th> <th> Hex </th> <th> Unicode </th> <th> Character </th>
+                                <tbody>
+                                        {{range $i,$a := .}}
+                                                {{if (and (gt $i 96) (lt $i 128)) }}
+                                                        <tr>
+                                                        <td>{{$a.Dec}} </td>
+                                                        <td>{{$a.Hex}} </td> 
+                                                        <td>{{$a.Uni}} </td> 
+                                                        <td>{{$a.Char}} </td>
+                                                        </tr>
+                                                {{end}}
+                                        {{end}}
+                                </tbody>
+                        </table>
+                        </td>
+                        </tr></table>
+		</body>
+	</html> 
+{{end}}`

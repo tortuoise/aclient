@@ -1,0 +1,14 @@
+{{define "base"}}
+	<!DOCTYPE html>
+	<html>
+		<head>
+			<meta charset="UTF-8">
+			<title>Devanagari</title>
+		</head>
+		<body style="font-size:50px">
+                        {{range .}}
+                                 <span> &#{{.}} </span>
+                        {{end}}
+		</body>
+	</html> 
+{{end}}`
