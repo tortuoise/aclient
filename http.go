@@ -293,13 +293,14 @@ func (this *HttpMultiGetter) MultiGet(doneChan chan bool, errorChan chan error) 
 
 func (this *HttpGetter) SetHeaders() {
 	//req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 6.1; rv:39.0) Gecko/20100101 Firefox/39.0")
-	this.Req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0 Iceweasel/31.8.0i")
-	this.Req.Header.Set("Host", "nseindia.com")
-	this.Req.Header.Set("DNT", "1")
-	this.Req.Header.Set("Connection", "keep-alive")
+	this.Req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/58.0")
+	this.Req.Header.Set("Host", "www.nseindia.com")
+	this.Req.Header.Set("Accept", "*/*")
+    this.Req.Header.Set("X-Requested-With", "XMLHttpRequest")
+	//this.Req.Header.Set("Connection", "keep-alive")
 	//req.Header.Set("Cache-Control", "max-age=0")
 	this.Req.Header.Set("Accept-Language", "en-US,en;q=0.5")
-	this.Req.Header.Set("Accept-Encoding", "gzip, deflate")
+	this.Req.Header.Set("Accept-Encoding", "gzip, deflate, br")
 	this.Req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*,q=0.8")
 }
 

@@ -1,24 +1,28 @@
 package aclient
 
 import (
-        "bytes"
-        "compress/gzip"
-        "encoding/json"
-        "fmt"
-        "net/http"
+    "bytes"
+    "compress/gzip"
+    "encoding/json"
+    "errors"
+    "fmt"
+    "net/http"
 	_ "reflect"
 	"testing"
 	_ "time"
-        "io/ioutil"
-        "strconv"
-        "time"
+    "io/ioutil"
+    "strconv"
+    "sort"
+    "sync"
+    "time"
 )
 
 var (
         err error
-	nsef   = "https://nseindia.com/live_market/dynaContent/live_watch/get_quote/ajaxFOGetQuoteJSON.jsp?underlying=NIFTY&instrument=FUTIDX&type=-&strike=-&expiry="
+	nsef = "https://nseindia.com/live_market/dynaContent/live_watch/get_quote/ajaxFOGetQuoteJSON.jsp?underlying=NIFTY&instrument=FUTIDX&type=-&strike=-&expiry="
 	nses = "https://nseindia.com/live_market/dynaContent/live_watch/get_quote/ajaxFOGetQuoteJSON.jsp?underlying="
-	nses1 = "&instrument=FUTSTK&type=-&strike=-&expiry="
+	nses1 = "&instrument=FUTSTK&expiry="
+	nses2 = "&type=SELECT&strike=SELECT"
 	getter *HttpMultiGetter
 )
 
@@ -80,7 +84,7 @@ func TestHttpGoGet(t *testing.T) {
 
 }
 
-//ExampleHttMultiGet demonstrates how to make multiple http requests using goroutines using a single client/transport.
+//ExampleHttMultiGet demonstrates how to make multiple http requests using goroutines using a single client/transport. go test -run HttpMultiGet github.com/tortuoise/aclient
 func ExampleHttpMultiGet() {
 
         nseLive := []byte(nses)
@@ -96,7 +100,7 @@ func ExampleHttpMultiGet() {
         errChan := make(chan error, 1)
         respChan := make(chan []byte, 1)
         for _, sngl := range sngls {
-                url := append(append(append(nseLive, sngl...), nses1...), x1...)
+                url := append(append(append(append(nseLive, sngl...), nses1...), x1...), nses2...)
                 urls = append(urls, string(url))
                 go func(url string) {
                         req, err := http.NewRequest("GET", url, nil)
@@ -107,7 +111,7 @@ func ExampleHttpMultiGet() {
                         setHeaders(req)
                         resp, err := client.Do(req)
                         if err != nil {
-                                errChan <- err
+                                errChan <- errors.New("GET"+err.Error())
                                 return
                         }else {
                                 if resp != nil {
@@ -116,7 +120,8 @@ func ExampleHttpMultiGet() {
                                 cl := resp.Header.Get(contentLengthHeader)
                                 icl, err := strconv.Atoi(cl)
                                 if err != nil {
-                                        errChan <- err
+                                        //errChan <- err
+                                        errChan <- errors.New("Strconv"+err.Error())
                                         return
                                 }
                                 ubs := make([]byte, icl*3)
@@ -125,7 +130,8 @@ func ExampleHttpMultiGet() {
                                         case "gzip":
                                                 gzr, err := gzip.NewReader(resp.Body)
                                                 if err != nil {
-                                                        errChan <- err
+                                                        //errChan <- err
+                                                        errChan <- errors.New("gzip"+err.Error())
                                                         return
                                                 }
                                                 defer gzr.Close()
@@ -136,7 +142,8 @@ func ExampleHttpMultiGet() {
                                         default:
                                                 gzr, err := gzip.NewReader(resp.Body)
                                                 if err != nil {
-                                                        errChan <- err
+                                                        //errChan <- err
+                                                        errChan <- errors.New("default "+err.Error())
                                                         return
                                                 }
                                                 defer gzr.Close()
@@ -152,6 +159,9 @@ func ExampleHttpMultiGet() {
                         doneChan<- true
                 }(string(url))
         }
+        strngs := make(Datas, 0)
+        var mtx sync.Mutex
+        var wg sync.WaitGroup
         for n:= 0; n < len(urls); {
                 select {
                         case <-doneChan:
@@ -161,23 +171,35 @@ func ExampleHttpMultiGet() {
                                 n++
                                 fmt.Println("Error: ", err)
                         case bs := <-respChan:
-                                //fmt.Print("Success: ")
                                 n++
+                                wg.Add(1)
                                 go func(bs []byte) {
+                                        defer wg.Done()
                                         od := &OptionData{}
                                         err := json.Unmarshal(bs, od)
                                         if err != nil {
+                                                fmt.Println(err)
                                                 errChan <- err
                                                 return
                                         }
-                                        fmt.Println(od.String())
+                                        mtx.Lock()
+                                        strngs = append(strngs, *od)
+                                        mtx.Unlock()
                                 }(bs)
-                        case <-time.After(500 * time.Millisecond):
+                        case <-time.After(2000 * time.Millisecond):
                                 fmt.Println("Timeout: ", n, " timed out")
                                 n++
                 }
+                time.Sleep(100*time.Millisecond)
         }
         close(doneChan)
+        close(errChan)
+        close(respChan)
+        wg.Wait()
+        sort.Sort(strngs)
+        for _,strng := range strngs {
+            fmt.Println(strng.String())
+        }
 
         // Output: Varies
         // Varies

@@ -101,6 +101,21 @@ func (od *OptionData) String() string{
 
 }
 
+//Datas implements sort.Interface
+type Datas []OptionData
+
+func (ods Datas) Len() int {
+    return len(ods)
+}
+
+func (ods Datas) Swap(i,j int) {
+        ods[i], ods[j] = ods[j], ods[i]
+}
+
+func (ods Datas) Less(i, j int) bool {
+    return ods[i].Book[0].Underlying < ods[j].Book[0].Underlying
+}
+
 func lastThurs(month time.Month) int {
 	this := time.Date(time.Now().Year(), month, dayspMonth(month), 12, 0, 0, 0, time.UTC)
 	if isThurs(this) {
@@ -213,12 +228,18 @@ func isLeap(year int) bool {
 
 func setHeaders(req *http.Request) {
 	//req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 6.1; rv:39.0) Gecko/20100101 Firefox/39.0")
-	req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0 Iceweasel/31.8.0i")
-	req.Header.Set("Host", "nseindia.com")
-	req.Header.Set("DNT", "1")
-	req.Header.Set("Connection", "keep-alive")
+	//req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0 Iceweasel/31.8.0i")
+	//req.Header.Set("Host", "nseindia.com")
+	//req.Header.Set("DNT", "1")
+	//req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/58.0")
+	req.Header.Set("Host", "www.nseindia.com")
+	req.Header.Set("Accept", "*/*")
+    req.Header.Set("X-Requested-With", "XMLHttpRequest")
+    req.Header.Set("Referer", req.URL.String())
 	//req.Header.Set("Cache-Control", "max-age=0")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
 	req.Header.Set("Accept-Encoding", "gzip, deflate")
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*,q=0.8")
 }
+
