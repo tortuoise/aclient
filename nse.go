@@ -145,7 +145,7 @@ func isLastThurs(now time.Time) bool {
 	return false
 }
 
-func x1() (time.Time, string) {
+func X1() (time.Time, string) {
 	now := time.Now()
 	lt := lastThurs(now.Month())
 	mth := make([]byte, 3)
@@ -166,7 +166,7 @@ func x1() (time.Time, string) {
 }
 
 func x2() (time.Time, string) {
-	x1, _ := x1()
+	x1, _ := X1()
 	x2 := x1.AddDate(0, 0, 28)
 	mth := make([]byte, 3)
 	_, err := strings.NewReader(x2.Month().String()).Read(mth)
@@ -226,7 +226,7 @@ func isLeap(year int) bool {
 	return false
 }
 
-func setHeaders(req *http.Request) {
+func SetHeaders(req *http.Request) {
 	//req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 6.1; rv:39.0) Gecko/20100101 Firefox/39.0")
 	//req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/31.0 Iceweasel/31.8.0i")
 	//req.Header.Set("Host", "nseindia.com")

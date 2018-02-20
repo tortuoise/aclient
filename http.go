@@ -21,9 +21,9 @@ import (
 
 var (
 	tr                  = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
-	client              = &http.Client{Transport: tr}
-	contentLengthHeader = "Content-Length"
-	contentTypeHeader   = "Content-Type"
+	Client              = &http.Client{Transport: tr}
+	ContentLengthHeader = "Content-Length"
+	ContentTypeHeader   = "Content-Type"
 	acceptRangesHeader  = "Accept-Ranges"
 	status              = "Status"
 	mu                  = &sync.Mutex{}
@@ -56,13 +56,13 @@ func NewHttpGetter(url string) (*HttpGetter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &HttpGetter{Req: req, Clnt: client}, nil
+	return &HttpGetter{Req: req, Clnt: Client}, nil
 
 }
 
 func NewHttpMultiGetter(urls []string) (*HttpMultiGetter, error) {
 
-	hmg := &HttpMultiGetter{Clnt: client}
+	hmg := &HttpMultiGetter{Clnt: Client}
 	hmg.Req = make([]*http.Request, len(urls))
 	hmg.Resp = make([]*http.Response, len(urls))
 	hmg.Ubs = make([][]byte, len(urls))
@@ -153,7 +153,7 @@ func (this *HttpGetter) Get() error {
 	if err != nil {
 		return err
 	}
-	cl := this.Resp.Header.Get(contentLengthHeader)
+	cl := this.Resp.Header.Get(ContentLengthHeader)
 	if cl == "" {
 		return errors.New("Response doesn't have content length")
 	}
@@ -162,7 +162,7 @@ func (this *HttpGetter) Get() error {
 		return err
 	}
 	this.Ubs = make([]byte, icl*3)
-	ct := this.Resp.Header.Get(contentTypeHeader)
+	ct := this.Resp.Header.Get(ContentTypeHeader)
 	if ct == "" {
 		return errors.New("Response doesn't have content type")
 	}
@@ -198,7 +198,7 @@ func (this *HttpGetter) MultiGet(doneChan chan bool, errorChan chan error) error
 		if err != nil {
 			errorChan <- err
 		}
-		cl := this.Resp.Header.Get(contentLengthHeader)
+		cl := this.Resp.Header.Get(ContentLengthHeader)
 		if cl == "" {
 			errorChan <- errors.New("Response doesn't have content length")
 		}
@@ -207,7 +207,7 @@ func (this *HttpGetter) MultiGet(doneChan chan bool, errorChan chan error) error
 			errorChan <- err
 		}
 		this.Ubs = make([]byte, icl*3)
-		ct := this.Resp.Header.Get(contentTypeHeader)
+		ct := this.Resp.Header.Get(ContentTypeHeader)
 		if ct == "" {
 			errorChan <- errors.New("Response doesn't have content type")
 		}
@@ -251,7 +251,7 @@ func (this *HttpMultiGetter) MultiGet(doneChan chan bool, errorChan chan error) 
 			}
 			d.Resp[i] = x
 			defer d.Resp[i].Body.Close()
-			cl := d.Resp[i].Header.Get(contentLengthHeader)
+			cl := d.Resp[i].Header.Get(ContentLengthHeader)
 			if cl == "" {
 				errorChan <- errors.New("Response doesn't have content length")
 			}
@@ -260,7 +260,7 @@ func (this *HttpMultiGetter) MultiGet(doneChan chan bool, errorChan chan error) 
 				errorChan <- err
 			}
 			d.Ubs[i] = make([]byte, icl*3)
-			ct := d.Resp[i].Header.Get(contentTypeHeader)
+			ct := d.Resp[i].Header.Get(ContentTypeHeader)
 			if ct == "" {
 				errorChan <- errors.New("Response doesn't have content type")
 			}
@@ -342,14 +342,14 @@ func NewHttpDownloader(url string, par int64, skipTLS bool) *HttpDownloader {
 	req, err := http.NewRequest("GET", url, nil)
 	FatalCheck(err)
 
-	resp, err := client.Do(req)
+	resp, err := Client.Do(req)
 	FatalCheck(err)
 	fmt.Println("Done")
 
-	if resp.Header.Get(contentLengthHeader) == "" {
+	if resp.Header.Get(ContentLengthHeader) == "" {
 		fmt.Println("Content Length not set")
 	} else {
-		fmt.Sprintf("Content Length: %q \n", resp.Header.Get(contentLengthHeader))
+		fmt.Sprintf("Content Length: %q \n", resp.Header.Get(ContentLengthHeader))
 	}
 
 	if resp.Header.Get(acceptRangesHeader) == "" {
