@@ -1,4 +1,4 @@
-package aclient
+package getter
 
 import (
 	"compress/gzip"
@@ -17,6 +17,9 @@ import (
 	"strings"
 	"sync"
 	_ "time"
+
+    "github.com/tortuoise/aclient/nse"
+    "github.com/tortuoise/aclient"
 )
 
 var (
@@ -36,7 +39,7 @@ type HttpGetter struct {
 	Clnt        *http.Client
 	RespHeaders map[string]string
 	Ubs         []byte
-	Od          *OptionData
+	Od          *nse.OptionData
 }
 
 type HttpMultiGetter struct {
@@ -47,7 +50,7 @@ type HttpMultiGetter struct {
 	Clnt        *http.Client
 	RespHeaders []map[string]string
 	Ubs         [][]byte
-	Ods         []*OptionData
+	Ods         []*nse.OptionData
 }
 
 func NewHttpGetter(url string) (*HttpGetter, error) {
@@ -67,7 +70,7 @@ func NewHttpMultiGetter(urls []string) (*HttpMultiGetter, error) {
 	hmg.Resp = make([]*http.Response, len(urls))
 	hmg.Ubs = make([][]byte, len(urls))
 	hmg.RespReader = make([]io.ReadCloser, len(urls))
-	hmg.Ods = make([]*OptionData, len(urls))
+	hmg.Ods = make([]*nse.OptionData, len(urls))
 	for i, url := range urls {
 		r, err := http.NewRequest("GET", url, nil)
 		if err != nil {
@@ -112,8 +115,8 @@ func (this *HttpGetter) Unmarshal(v interface{}) error {
 		return err //errors.New("Json unmarshalling error")
 	}
 	switch v.(type) {
-	case *OptionData:
-		this.Od = v.(*OptionData)
+	case *nse.OptionData:
+		this.Od = v.(*nse.OptionData)
 	}
 	return nil
 }
@@ -126,11 +129,11 @@ func (this *HttpMultiGetter) MultiUnmarshal(v interface{}) error {
 		//        return err //errors.New("Json unmarshalling error")
 		// }
 		switch v.(type) {
-		case *OptionData:
+		case *nse.OptionData:
 			if i > len(this.Ods)-1 {
 				return errors.New(fmt.Sprintf("Unmarshal error: %v", i))
 			}
-			this.Ods[i] = &OptionData{}
+			this.Ods[i] = &nse.OptionData{}
 			err := json.Unmarshal(ubs, this.Ods[i])
 			if err != nil {
 				return err //errors.New("Json unmarshalling error")
@@ -181,7 +184,7 @@ func (this *HttpGetter) Get() error {
 		}
 	}
 	n, err := this.RespReader.Read(this.Ubs)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return err
 	}
 	this.Ubs = this.Ubs[:n]
@@ -293,15 +296,17 @@ func (this *HttpMultiGetter) MultiGet(doneChan chan bool, errorChan chan error) 
 
 func (this *HttpGetter) SetHeaders() {
 	//req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 6.1; rv:39.0) Gecko/20100101 Firefox/39.0")
-	this.Req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/58.0")
-	this.Req.Header.Set("Host", "www.nseindia.com")
 	this.Req.Header.Set("Accept", "*/*")
-    this.Req.Header.Set("X-Requested-With", "XMLHttpRequest")
-	//this.Req.Header.Set("Connection", "keep-alive")
-	//req.Header.Set("Cache-Control", "max-age=0")
-	this.Req.Header.Set("Accept-Language", "en-US,en;q=0.5")
 	this.Req.Header.Set("Accept-Encoding", "gzip, deflate, br")
-	this.Req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*,q=0.8")
+	this.Req.Header.Set("Accept-Language", "en-US,en;q=0.5")
+	this.Req.Header.Set("Connection", "keep-alive")
+	this.Req.Header.Set("DNT", "1")
+	this.Req.Header.Set("Host", "www.nseindia.com")
+	this.Req.Header.Set("Referer", "https://www.nseindia.com")
+	this.Req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:31.0) Gecko/20100101 Firefox/59.0")
+    this.Req.Header.Set("X-Requested-With", "XMLHttpRequest")
+	//req.Header.Set("Cache-Control", "max-age=0")
+	//this.Req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*,q=0.8")
 }
 
 func (this *HttpMultiGetter) SetMultiHeaders(i int) {
@@ -331,19 +336,19 @@ type HttpDownloader struct {
 
 func NewHttpDownloader(url string, par int64, skipTLS bool) *HttpDownloader {
 	parsed, err := stdurl.Parse(url)
-	FatalCheck(err)
+	aclient.FatalCheck(err)
 
 	ips, err := net.LookupIP(parsed.Host)
-	FatalCheck(err)
+	aclient.FatalCheck(err)
 
-	ipstr := FilterIPV4(ips)
-	fmt.Sprintf("Resolved host: %w \n", strings.Join(ipstr, "|"))
+	ipstr := aclient.FilterIPV4(ips)
+	fmt.Sprintf("Resolved host: %v \n", strings.Join(ipstr, "|"))
 
 	req, err := http.NewRequest("GET", url, nil)
-	FatalCheck(err)
+	aclient.FatalCheck(err)
 
 	resp, err := Client.Do(req)
-	FatalCheck(err)
+	aclient.FatalCheck(err)
 	fmt.Println("Done")
 
 	if resp.Header.Get(ContentLengthHeader) == "" {

@@ -1,4 +1,4 @@
-package aclient
+package nse
 
 import (
         "fmt"
@@ -97,7 +97,7 @@ type Stock struct {
 
 func (od *OptionData) String() string{
 
-	return fmt.Sprintf(" %10s %v %8s %10s %10s %8s %10s %10s ", od.Book[0].Underlying, od.Book[0].ExpiryDate, od.Book[0].BuyQuantity1, od.Book[0].BuyPrice1, od.Book[0].SellPrice1, od.Book[0].SellQuantity1, od.Book[0].LowPrice, od.Book[0].HighPrice)
+	return fmt.Sprintf(" %10s %v %8s %10s %10s %8s %10s %10s %10s", od.Book[0].Underlying, od.Book[0].ExpiryDate, od.Book[0].BuyQuantity1, od.Book[0].BuyPrice1, od.Book[0].SellPrice1, od.Book[0].SellQuantity1, od.Book[0].LowPrice, od.Book[0].HighPrice, od.Book[0].Change)
 
 }
 
@@ -165,7 +165,7 @@ func X1() (time.Time, string) {
 	return time.Date(now.Year(), now.Month(), lt, 12, 0, 0, 0, time.UTC), strconv.Itoa(lt) + strings.ToUpper(string(mth)) + strconv.Itoa(now.Year())
 }
 
-func x2() (time.Time, string) {
+func X2() (time.Time, string) {
 	x1, _ := X1()
 	x2 := x1.AddDate(0, 0, 28)
 	mth := make([]byte, 3)
@@ -184,8 +184,8 @@ func x2() (time.Time, string) {
 	return x2, strconv.Itoa(x2.Day()) + strings.ToUpper(string(mth)) + strconv.Itoa(x2.Year())
 }
 
-func x3() (time.Time, string) {
-	x2, _ := x2()
+func X3() (time.Time, string) {
+	x2, _ := X2()
 	x3 := x2.AddDate(0, 0, 28)
 	mth := make([]byte, 3)
 	_, err := strings.NewReader(x3.Month().String()).Read(mth)

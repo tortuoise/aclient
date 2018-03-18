@@ -6,14 +6,15 @@ import (
     "errors"
 	"fmt"
     "net/http"
-    "io/ioutil"
+    _"io/ioutil"
     "encoding/json"
     "sort"
     "strconv"
     "sync"
     "time"
 
-    "github.com/tortuoise/aclient"
+    "github.com/tortuoise/aclient/nse"
+    "github.com/tortuoise/aclient/getter"
 )
 
 var (
@@ -22,22 +23,25 @@ var (
 	nses = "https://nseindia.com/live_market/dynaContent/live_watch/get_quote/ajaxFOGetQuoteJSON.jsp?underlying="
 	nses1 = "&instrument=FUTSTK&expiry="
 	nses2 = "&type=SELECT&strike=SELECT"
-	getter *aclient.HttpMultiGetter
+	//getter *getter.HttpMultiGetter
 )
 func main() {
 
         nseLive := []byte(nses)
-        raw, err := ioutil.ReadFile("nse_prtfl")
+        //raw, err := ioutil.ReadFile("nse_prtfl")
+        raw, err := nse.Asset("static/nse_prtfl")
         if err != nil {
                 fmt.Println(err)
         }
         sngls := bytes.Split(raw, []byte("\n"))
         sngls = sngls[:len(sngls)-1]
-        _, x1 := aclient.X1()
+        x1 := "28MAR2018"
+        //_, x1 := nse.X1()
         urls := make([]string, 0, len(sngls))
         doneChan := make(chan bool, 1)
         errChan := make(chan error, 1)
         respChan := make(chan []byte, 1)
+        fmt.Println("Getting ...")
         for _, sngl := range sngls {
                  url := append(append(append(append(nseLive, sngl...), nses1...), x1...), nses2...)
                 urls = append(urls, string(url))
@@ -47,8 +51,8 @@ func main() {
                                 errChan <- err
                                 return
                         }
-                        aclient.SetHeaders(req)
-                        resp, err := aclient.Client.Do(req)
+                        nse.SetHeaders(req)
+                        resp, err := getter.Client.Do(req)
                         if err != nil {
                                 errChan <- errors.New("GET"+err.Error())
                                 return
@@ -56,7 +60,7 @@ func main() {
                                 if resp != nil {
                                         defer resp.Body.Close()
                                 }
-                                cl := resp.Header.Get(aclient.ContentLengthHeader)
+                                cl := resp.Header.Get(getter.ContentLengthHeader)
                                 icl, err := strconv.Atoi(cl)
                                 if err != nil {
                                         //errChan <- err
@@ -64,7 +68,7 @@ func main() {
                                         return
                                 }
                                 ubs := make([]byte, icl*3)
-                                ct := resp.Header.Get(aclient.ContentTypeHeader)
+                                ct := resp.Header.Get(getter.ContentTypeHeader)
                                 switch ct {
                                         case "gzip":
                                                  gzr, err := gzip.NewReader(resp.Body)
@@ -98,7 +102,7 @@ func main() {
                         doneChan<- true
                 }(string(url))
         }
-        strngs := make(aclient.Datas, 0)
+        strngs := make(nse.Datas, 0)
         var mtx sync.Mutex
         var wg sync.WaitGroup
         for n:= 0; n < len(urls); {
@@ -114,7 +118,7 @@ func main() {
                                 wg.Add(1)
                                 go func(bs []byte) {
                                         defer wg.Done()
-                                        od := &aclient.OptionData{}
+                                        od := &nse.OptionData{}
                                         err := json.Unmarshal(bs, od)
                                         if err != nil {
                                                 fmt.Println(err)
